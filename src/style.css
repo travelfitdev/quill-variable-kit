@@ -1,0 +1,55 @@
+/*
+ * 编辑器外壳与字数节点，以及**覆盖外壳布局**的模式样式（单行模式）。
+ * 判据：规则自洽、只描述自己产生的元素的能力样式跟能力走（见 core/variable/style.css）；
+ * 覆盖下面这些 padding / --editor-padding-* 变量的留在这里，否则两个文件都读不通。
+ */
+.ql-container {
+  --editor-padding-inline: 11px;
+  --editor-padding-block: 4px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d9d9d9;
+  border-radius: 2px;
+  font-size: inherit;
+}
+
+.ql-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  padding: var(--editor-padding-block) var(--editor-padding-inline);
+  line-height: inherit;
+}
+
+.ql-editor.ql-blank::before {
+  left: var(--editor-padding-inline);
+  color: #d4d4d4;
+  font-style: normal;
+}
+
+/* 单行模式（.ql-single-line 由 installSingleLine 添加）：去掉换行后横向滚动，隐藏滚动条。 */
+.ql-container.ql-single-line {
+  line-height: 22px;
+  padding: 0 var(--editor-padding-inline);
+  scrollbar-width: none;
+}
+
+.ql-container.ql-single-line::-webkit-scrollbar,
+.ql-container.ql-single-line .ql-editor::-webkit-scrollbar {
+  display: none;
+}
+
+.ql-container.ql-single-line .ql-editor {
+  padding: var(--editor-padding-block) 0;
+  scrollbar-width: none;
+}
+
+.rich-editor-count {
+  flex: 0 0 auto;
+  padding: 1px var(--editor-padding-inline);
+  color: #00000026;
+  line-height: 1.5;
+  text-align: right;
+  pointer-events: none;
+  user-select: none;
+}

@@ -1,0 +1,6 @@
+/* 只服务 VariableBlot 产生的 .ql-variable 节点，跟着能力走，不混进编辑器外壳样式。 */
+.ql-variable {
+  display: inline-block;
+  color: #000;
+  font-weight: 500;
+}

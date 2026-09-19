@@ -1,0 +1,8 @@
+node_modules
+package-lock.json
+dist
+dist-example
+coverage
+.DS_Store
+*.local
+.tmp-*

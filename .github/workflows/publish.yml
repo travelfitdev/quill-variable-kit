@@ -1,0 +1,28 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          # npm stage publish 要求 Node >= 22.14（CLI >= 11.15），直接用当前 LTS。
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # 暂存发布：不直接上线。验证后版本进入 npm 暂存区，由维护者带 2FA
+      # （npmjs.com 的 Staged Packages 或 `npm stage approve`）批准后才对外可见。
+      - run: pnpm run verify
+      - run: npm stage publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
