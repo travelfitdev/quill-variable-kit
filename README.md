@@ -2,6 +2,8 @@
 
 一个基于 Quill 2 的轻量、框架无关富文本编辑器封装，内置变量、单行模式和字数限制。
 
+在线示例：<https://travelfitdev.github.io/quill-variable-kit/>
+
 ## 特性
 
 - **变量**：文本中命中的 `token`（如 `{{name}}` / `#NAME#`）会被识别为不可编辑的嵌片，按配置的 `label` 展示；各入口的识别规则见「变量规则」。
