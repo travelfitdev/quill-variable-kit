@@ -5,5 +5,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [vue()],
+  base: './',
   build: { outDir: '../dist-example', emptyOutDir: true },
 });

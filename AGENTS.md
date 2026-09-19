@@ -19,7 +19,7 @@ pnpm run check         # tsc --noEmit
 pnpm run test          # vitest run（单次）
 pnpm run test:watch    # vitest 监听
 pnpm run build         # vite build + 生成 .d.ts
-pnpm run example:build # 构建 Vue 示例到 dist-example/
+pnpm run example:build # 构建 Vue 示例到 dist-example/（相对路径，可直接托管 GitHub Pages；push main 时由 deploy-example.yml 自动部署）
 pnpm run verify        # CI 门禁：check + test + build + example:build + pack:check
 pnpm run release:patch # 发版：验证 -> 改小版本 -> commit + tag -> 暂存（见「发布流程」）
 ```
