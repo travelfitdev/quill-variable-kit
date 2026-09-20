@@ -2,12 +2,15 @@
 
 一个基于 Quill 2 的轻量、框架无关富文本编辑器封装，内置变量、单行模式和字数限制。
 
+在线示例：<https://travelfitdev.github.io/quill-variable-kit/>
+
 ## 特性
 
 - **变量**：文本中命中的 `token`（如 `{{name}}` / `#NAME#`）会被识别为不可编辑的嵌片，按配置的 `label` 展示；各入口的识别规则见「变量规则」。
 - **单行模式**：`singleLine: true` 时禁止换行并自动清理写入或粘贴的换行，内容横向滚动。
 - **字数限制**：超过 `maxLength` 的输入自动回退，附展示用计数节点；换行与变量 `token` 不计入。
 - **跨编辑器粘贴校准**：粘贴时按目标编辑器的 `variables` 配置校验、重建或降级变量，不会把陌生 `token` 写入文档。
+- **只读模式**：`readOnly: true` 创建即为只读展示态，文本可选中复制；运行时 `enable()` 即可恢复编辑。
 - **框架无关**：只依赖 DOM，原生 JS 与 React/Vue 等框架均可用。
 
 ## 安装
@@ -62,6 +65,7 @@ editor.destroy();
 | `variables` | `Variable[]` | 变量配置，决定哪些 `token` / `label` 会被识别。 |
 | `scroll` | `boolean` | 设为 `false` 时编辑区高度由内容撑开。 |
 | `singleLine` | `boolean` | 禁止换行，并清理粘贴或 `setText` 中的换行；同时不展示字数计数。 |
+| `readOnly` | `boolean` | 默认 `false`；设为 `true` 时创建即为只读展示态，运行时调用 `enable()` 可恢复编辑。 |
 | `onChange` | `(editor) => void` | 内容变化后的回调，含 `setText` 等 API 写入；参数为当前 `EditorInstance`。 |
 
 ### `EditorInstance`
@@ -70,7 +74,7 @@ editor.destroy();
 - `setText(text)`：替换全部内容；**只识别 `token`**，`label` 按普通文本处理。
 - `insertVariable(token)`：在选区插入不可编辑变量，未聚焦时追加到末尾；展示文本取配置的 `label`。`token` 必须已配置，否则忽略该调用并在控制台输出警告。
 - `getVariables()`：按首次出现的顺序统计文档里实际落地的变量，返回 `VariableUsage[]`；配置了但未使用的变量不出现。
-- `disable()` / `enable()`：切换编辑状态。
+- `disable()` / `enable()`：切换编辑状态。`readOnly: true` 创建出来的编辑器初始即禁用态，`enable()` 后恢复编辑；两者在运行时是同一开关。
 - `getOptions()`：创建选项的只读快照。
 - `destroy()`：清理内部事件与包创建的计数节点；容器 DOM 由调用方自行移除。
 

@@ -16,9 +16,9 @@ describe('variable helpers', () => {
   });
 
   it('excludes newlines and token matches from content length', () => {
-    expect(getContentLength('A\n{{name}}客户姓名', [{ token: '{{name}}', label: '客户姓名' }])).toBe(
-      'A客户姓名'.length,
-    );
+    expect(
+      getContentLength('A\n{{name}}客户姓名', [{ token: '{{name}}', label: '客户姓名' }]),
+    ).toBe('A客户姓名'.length);
   });
 
   it('falls back to token when label is omitted', () => {
@@ -100,7 +100,10 @@ describe('createEditor', () => {
     expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
 
     // 展示文本只能来自配置：多余的实参不会生效，也不会污染落库的 label。
-    (editor.insertVariable as (token: string, extra?: string) => void)('{{name}}', '{{overridden}}');
+    (editor.insertVariable as (token: string, extra?: string) => void)(
+      '{{name}}',
+      '{{overridden}}',
+    );
     const embeds = element.querySelectorAll('.ql-variable');
     expect(embeds).toHaveLength(2);
     expect(embeds[1]?.textContent).toBe('客户姓名');
@@ -202,6 +205,29 @@ describe('createEditor', () => {
     const editor = createEditor({ element, maxLength: 5 });
     editor.setText('abc');
     expect(element.querySelector('.rich-editor-count')?.textContent).toBe('3/5');
+    editor.destroy();
+  });
+
+  it('readOnly starts disabled but enable() restores editing', () => {
+    const editor = createEditor({
+      element,
+      readOnly: true,
+      variables: [{ token: '{{name}}', label: '客户姓名' }],
+    });
+    const editorHost = element.querySelector<HTMLElement>('.ql-editor');
+
+    expect(element.classList.contains('ql-disabled')).toBe(true);
+    expect(editorHost?.getAttribute('contenteditable')).toBe('false');
+
+    // 只读只拦用户输入，API 写入照常落地（初始文本仍应渲染出变量）。
+    editor.setText('您好，{{name}}');
+    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+
+    editor.enable();
+    expect(element.classList.contains('ql-disabled')).toBe(false);
+    expect(editorHost?.getAttribute('contenteditable')).toBe('true');
+    editor.disable();
+    expect(element.classList.contains('ql-disabled')).toBe(true);
     editor.destroy();
   });
 });
