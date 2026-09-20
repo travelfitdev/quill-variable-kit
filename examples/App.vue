@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, type Ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, type Ref } from 'vue';
 import { createEditor, type EditorInstance, type Variable } from '../src';
 
 function useDemo(
@@ -7,11 +7,14 @@ function useDemo(
   options: {
     variables: Variable[];
     singleLine?: boolean;
+    readOnly?: boolean;
     placeholder: string;
     initialText: string;
   },
 ) {
   const content = shallowRef('');
+  // readOnly 只是初始态：enable() 之后仍可恢复编辑，这里用一个 ref 记录当前是否可编辑，供按钮切换文案。
+  const readOnly = ref(options.readOnly === true);
   let editor: EditorInstance | null = null;
 
   // setText 会同步触发 onChange；挂载后再写入一次，保证输出框显示初始内容。
@@ -22,6 +25,7 @@ function useDemo(
       placeholder: options.placeholder,
       maxLength: 200,
       ...(options.singleLine ? { singleLine: true } : {}),
+      ...(options.readOnly ? { readOnly: true } : {}),
       variables: options.variables,
       onChange(instance) {
         content.value = instance.getText();
@@ -35,14 +39,22 @@ function useDemo(
 
   return {
     content,
+    readOnly,
     insert(token: string) {
       editor?.insertVariable(token);
+    },
+    toggleReadOnly() {
+      if (!editor) return;
+      if (readOnly.value) editor.enable();
+      else editor.disable();
+      readOnly.value = !readOnly.value;
     },
   };
 }
 
 const singleLineElement = useTemplateRef<HTMLElement>('singleLineElement');
 const richTextElement = useTemplateRef<HTMLElement>('richTextElement');
+const readOnlyElement = useTemplateRef<HTMLElement>('readOnlyElement');
 
 // 单行模式演示 {{}} 风格的 token。
 const singleLineDemo = useDemo(singleLineElement, {
@@ -67,6 +79,18 @@ const richTextDemo = useDemo(richTextElement, {
 
 const { content: singleLineContent } = singleLineDemo;
 const { content: richTextContent } = richTextDemo;
+
+// 只读模式演示 readOnly 选项：创建即只读，但 enable() 后仍可恢复编辑。
+const readOnlyDemo = useDemo(readOnlyElement, {
+  readOnly: true,
+  placeholder: '只读展示',
+  variables: [
+    { token: '{{username}}', label: '#客户姓名#' },
+    { token: '{{phone}}', label: '#客户电话#' },
+  ],
+  initialText: '您好，{{username}}，电话 {{phone}}',
+});
+const { content: readOnlyContent, readOnly: readOnlyEditable, toggleReadOnly } = readOnlyDemo;
 </script>
 
 <template>
@@ -104,6 +128,21 @@ const { content: richTextContent } = richTextDemo;
           </button>
         </div>
         <output class="editor-output">{{ singleLineContent }}</output>
+      </section>
+
+      <section class="demo-card">
+        <h2 class="demo-card-title">只读模式</h2>
+        <div ref="readOnlyElement" class="editor-host" />
+        <div class="insert-actions">
+          <button class="insert-button" type="button" @click="toggleReadOnly()">
+            {{ readOnlyEditable ? '启用编辑' : '恢复只读' }}
+          </button>
+        </div>
+        <p class="editor-hint">
+          创建时设 <code>readOnly: true</code> 即为只读；点击按钮调用 <code>enable()</code> /
+          <code>disable()</code> 可随时切换编辑态。
+        </p>
+        <output class="editor-output">{{ readOnlyContent }}</output>
       </section>
     </div>
   </main>
@@ -144,6 +183,13 @@ const { content: richTextContent } = richTextDemo;
   display: flex;
   gap: 8px;
   margin-top: 12px;
+}
+.editor-hint {
+  margin: 12px 0 0;
+  color: #666;
+}
+.editor-hint code {
+  font-family: monospace;
 }
 .editor-output {
   display: block;

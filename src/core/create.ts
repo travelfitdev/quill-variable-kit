@@ -31,6 +31,8 @@ class EditorFacade implements EditorInstance {
       placeholder: this.options.placeholder,
     };
     this.editor = new InternalEditor(this.options.element, quillOptions);
+    // 只读只是初始态：构造时不处理键盘输入，但 enable() 随时可以恢复编辑。
+    if (this.options.readOnly) this.editor.enable(false);
     if (this.options.singleLine) installSingleLine(this.editor);
     const variables = this.options.variables;
     this.variable = variables?.length ? new VariableBinding(this.editor, variables) : null;

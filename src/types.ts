@@ -34,6 +34,8 @@ export interface EditorOptions {
   variables?: Variable[];
   /** 设为 false 时，编辑区高度由内容撑开。 */
   scroll?: boolean;
+  /** 设为 true 时创建即为只读展示态；运行时可调用 enable() 恢复编辑。 */
+  readOnly?: boolean;
   /** 启用后禁止换行，并合并粘贴或 setText 中的换行。 */
   singleLine?: boolean;
   /** 用户或 API 内容变更后的回调。 */

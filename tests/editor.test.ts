@@ -207,4 +207,27 @@ describe('createEditor', () => {
     expect(element.querySelector('.rich-editor-count')?.textContent).toBe('3/5');
     editor.destroy();
   });
+
+  it('readOnly starts disabled but enable() restores editing', () => {
+    const editor = createEditor({
+      element,
+      readOnly: true,
+      variables: [{ token: '{{name}}', label: '客户姓名' }],
+    });
+    const editorHost = element.querySelector<HTMLElement>('.ql-editor');
+
+    expect(element.classList.contains('ql-disabled')).toBe(true);
+    expect(editorHost?.getAttribute('contenteditable')).toBe('false');
+
+    // 只读只拦用户输入，API 写入照常落地（初始文本仍应渲染出变量）。
+    editor.setText('您好，{{name}}');
+    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+
+    editor.enable();
+    expect(element.classList.contains('ql-disabled')).toBe(false);
+    expect(editorHost?.getAttribute('contenteditable')).toBe('true');
+    editor.disable();
+    expect(element.classList.contains('ql-disabled')).toBe(true);
+    editor.destroy();
+  });
 });
