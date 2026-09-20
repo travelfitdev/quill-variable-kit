@@ -27,12 +27,14 @@ function buildMatchMap(
   getMatches: (variable: Variable) => Array<string | undefined>,
 ): Map<string, Variable> {
   const matchMap = new Map<string, Variable>();
-  variables.filter((variable) => Boolean(variable.token)).forEach((variable) => {
-    const normalized = normalizeVariable(variable);
-    getMatches(variable)
-      .filter((match): match is string => Boolean(match))
-      .forEach((match) => matchMap.set(match, normalized));
-  });
+  variables
+    .filter((variable) => Boolean(variable.token))
+    .forEach((variable) => {
+      const normalized = normalizeVariable(variable);
+      getMatches(variable)
+        .filter((match): match is string => Boolean(match))
+        .forEach((match) => matchMap.set(match, normalized));
+    });
   return matchMap;
 }
 

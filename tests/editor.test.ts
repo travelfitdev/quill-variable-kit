@@ -16,9 +16,9 @@ describe('variable helpers', () => {
   });
 
   it('excludes newlines and token matches from content length', () => {
-    expect(getContentLength('A\n{{name}}客户姓名', [{ token: '{{name}}', label: '客户姓名' }])).toBe(
-      'A客户姓名'.length,
-    );
+    expect(
+      getContentLength('A\n{{name}}客户姓名', [{ token: '{{name}}', label: '客户姓名' }]),
+    ).toBe('A客户姓名'.length);
   });
 
   it('falls back to token when label is omitted', () => {
@@ -100,7 +100,10 @@ describe('createEditor', () => {
     expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
 
     // 展示文本只能来自配置：多余的实参不会生效，也不会污染落库的 label。
-    (editor.insertVariable as (token: string, extra?: string) => void)('{{name}}', '{{overridden}}');
+    (editor.insertVariable as (token: string, extra?: string) => void)(
+      '{{name}}',
+      '{{overridden}}',
+    );
     const embeds = element.querySelectorAll('.ql-variable');
     expect(embeds).toHaveLength(2);
     expect(embeds[1]?.textContent).toBe('客户姓名');
