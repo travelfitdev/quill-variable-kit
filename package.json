@@ -1,6 +1,6 @@
 {
   "name": "quill-variable-kit",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A tiny framework-agnostic Quill 2 editor with variables, single-line mode and char limit.",
   "keywords": [
     "quill",
