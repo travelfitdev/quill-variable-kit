@@ -10,6 +10,7 @@ on:
     paths-ignore:
       - '**.md'
       - '.github/**'
+      - '.husky/**'
 
 # 显式声明最小权限：默认 GITHUB_TOKEN 权限随仓库设置变化，不依赖它。
 permissions:
