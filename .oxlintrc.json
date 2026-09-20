@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true
+  },
+  "ignorePatterns": ["dist/**", "dist-example/**", "node_modules/**"],
+  "rules": {
+    "no-console": "off",
+
+    // no-unsafe-type-assertion：Quill 的 scroll.query / DOM 查询返回联合类型，收窄断言是必要的，
+    // 规则无法区分「危险的收窄」和「这里就我知道类型」。
+    "typescript/no-unsafe-type-assertion": "off",
+    // no-unnecessary-type-assertion：`value as Partial<Variable>` 去掉后类型反而变宽，
+    // 类型体操场景下这类断言是有意为之；editor.test.ts 那处更是故意绕过签名来验证运行时行为。
+    "typescript/no-unnecessary-type-assertion": "off",
+    // require-mock-type-parameters：测试里 vi.fn() 的类型从调用上下文推断，显式标注是冗余。
+    "vitest/require-mock-type-parameters": "off",
+    // no-array-sort：建议的 toSorted() 是 ES2023，而本项目 target/lib 是 ES2022，
+    // 采用它会抬高使用者的运行时要求；现有 `[...keys].sort()` 已避开原地修改，无需改。
+    "unicorn/no-array-sort": "off"
+  },
+  "overrides": [
+    {
+      "files": ["tests/**/*.ts"],
+      "env": { "vitest": true }
+    }
+  ]
+}

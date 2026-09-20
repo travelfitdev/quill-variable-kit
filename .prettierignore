@@ -1,0 +1,18 @@
+# 构建产物与依赖不进格式化范围。
+dist/
+dist-example/
+node_modules/
+pnpm-lock.yaml
+
+# 临时目录。
+.tmp-vite2/
+.tmp-*.mjs
+.tmp-*.cjs
+
+# Markdown 不交给 Prettier：它按「字符数」对齐表格，而中日韩字符占 2 个显示宽度，
+# 结果是中文表格被补齐到等字符数、渲染出来列宽依然是乱的，比不对齐的紧凑写法更差。
+# 文档靠人工保持一致即可。
+*.md
+
+# 编辑器与工具配置：内容由对应工具写回，格式化了只会产生无意义的 diff。
+.vscode/

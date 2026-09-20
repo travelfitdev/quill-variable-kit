@@ -45,6 +45,9 @@
     "build": "vite build && pnpm run build:types",
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "example:dev": "vite --config examples/vite.config.ts --host 0.0.0.0",
@@ -57,7 +60,7 @@
     "release:patch": "npm version patch",
     "release:minor": "npm version minor",
     "release:major": "npm version major",
-    "verify": "pnpm run check && pnpm run test && pnpm run build && pnpm run example:build && pnpm run pack:check"
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test && pnpm run build && pnpm run example:build && pnpm run pack:check"
   },
   "peerDependencies": {
     "parchment": "^3.0.0",
@@ -71,7 +74,10 @@
     "@vitejs/plugin-vue": "^5.2.1",
     "husky": "^9.1.7",
     "jsdom": "^25.0.1",
+    "oxlint": "^1.83.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "parchment": "^3.0.0",
+    "prettier": "^3.9.8",
     "quill": "^2.0.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
