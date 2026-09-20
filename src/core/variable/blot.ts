@@ -46,7 +46,8 @@ export class VariableBlot extends EmbedBlot {
   }
 }
 
-const registeredConstructors = new WeakSet<object>();
+// 不写 <object>：那是 WeakSet 的默认类型参数，省略后推断结果完全相同。
+const registeredConstructors = new WeakSet();
 
 /** 只注册 blot；变量能力本身是 core 模块，不占用 Quill 的模块注册表。 */
 export function registerVariableBlot(QuillConstructor: typeof Quill = Quill): void {

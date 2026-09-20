@@ -1,28 +1,135 @@
-name: publish
+name: Publish Package
+
+# 暂存发布：推 v<数字>… tag 后只把版本推进 npm 暂存区，不直接上线。维护者需带 2FA 批准
+# （npmjs.com 的 Staged Packages 或 `npm stage approve <version>`）后才对外可见。
+#
+# 三个 job 按信任边界拆开（各 job 里另有权限说明），凭证只给真正需要它的一环：build 无凭证、
+# publish 只有 id-token、release 只有 contents: write。持有发布凭证的 job 不 install、不
+# checkout 源码，只对 build 产出的 tarball 操作，所以中间任何一环被投毒都拿不到发布凭证。
 
 on:
   push:
     tags:
-      - 'v*'
+      # 收紧到 v + 数字开头，避免 v-next / verify-test 这类非发布 tag 推进 npm。
+      - 'v[0-9]*'
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  build:
+    name: Build package
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 不写死 pnpm 版本：action-setup 会读 package.json 的 packageManager，升级只改一处。
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 24
+        uses: actions/setup-node@v7
         with:
-          version: 12.3.4
-      - uses: actions/setup-node@v4
-        with:
-          # npm stage publish 要求 Node >= 22.14（CLI >= 11.15），直接用当前 LTS。
           node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # 暂存发布：不直接上线。验证后版本进入 npm 暂存区，由维护者带 2FA
-      # （npmjs.com 的 Staged Packages 或 `npm stage approve`）批准后才对外可见。
-      - run: pnpm run verify
-      - run: npm stage publish
+          # 刻意不开缓存：本 job 的产物会被发布，而缓存对 PR 可写（缓存投毒）。
+          # 见 https://docs.zizmor.sh/audits/#cache-poisoning
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # tag 与 package.json 版本不一致时，发布出去的会是错的版本号；宁可在这里失败。
+      - name: Check tag matches package version
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$expected" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME 与 package.json 版本（$expected）不一致"
+            exit 1
+          fi
+
+      # verify 含 build；dist/ 是 gitignore 的，产物只在这个 job 的工作区里存在，
+      # 所以下面必须立刻打成 tarball 交给 publish job，不能指望它自己再构建一次。
+      - name: Run verify
+        run: pnpm run verify
+
+      # --skip-manifest-obfuscation：pnpm 默认会从打包后的 manifest 里剥掉
+      # packageManager 与 publish 生命周期脚本，加上它才能和以前 npm publish 直发
+      # 产出的 package.json 保持一致。
+      - name: Pack tarball
+        run: pnpm pack --out quill-variable-kit.tgz --skip-manifest-obfuscation
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-tarball
+          path: quill-variable-kit.tgz
+          retention-days: 1
+
+  publish:
+    name: Stage ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 只给 OIDC：trusted publishing 用它换一次性 registry token，不需要长期 secret。
+    permissions:
+      id-token: write
+    steps:
+      # 刻意不给 registry-url：setup-node 一配就会写一个指向 `${NODE_AUTH_TOKEN}`
+      # 的 .npmrc，而这个仓库没有 NODE_AUTH_TOKEN secret，token 会落成占位符；npm
+      # 只要看到 token 就去鉴权、不会退回 OIDC，暂存会报 E401（见 0.1.2 那次失败）。
+      # 不配则 npm 用默认 registry.npmjs.org，且在没有 token 配置时自动走 trusted
+      # publishing（OIDC）。这里发布对象是 tarball，不需要装依赖。
+      - name: Set node version to 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          # 同样刻意不开缓存：本 workflow 的产物会被发布（理由见 build job）。
+
+      # npm trusted publishing 要求 CLI >= 11.5.2，别指望 runner 自带的版本一定够。
+      - name: Ensure npm supports trusted publishing
+        run: npm i -g npm@^11.5.2
+
+      - name: Download tarball
+        uses: actions/download-artifact@v8
+        with:
+          name: package-tarball
+
+      # 发布对象是 tarball 而不是目录，npm 因此不会触发 prepublishOnly（只有目录发布会
+      # 跑它），所以这个持有凭证的 job 不执行任何项目脚本；--ignore-scripts 再加一道保险。
+      - name: Stage package for publishing
+        run: npm stage publish ./quill-variable-kit.tgz --ignore-scripts
+
+  release:
+    name: Create GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 建 release 需要写仓库，但不需要 npm 的 OIDC，和上面那个 job 分开给权限。
+    permissions:
+      contents: write
+    steps:
+      # 用草稿：此刻版本还躺在 npm 暂存区，没经过 2FA 批准，对外还装不到。等维护者
+      # 批准暂存版本时一并发布这个 release，两步一起完成「上线」这个不可逆动作。
+      - name: Create draft GitHub release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+
+          prerelease=()
+          if [[ "${version%%+*}" == *-* ]]; then
+            prerelease+=(--prerelease)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            "${prerelease[@]}"

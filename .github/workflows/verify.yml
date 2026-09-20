@@ -1,21 +1,49 @@
-name: verify
+name: Verify
 
 on:
   pull_request:
   push:
     branches: [main]
+    # 纯文档 / workflow 改动不影响构建产物，跳过整条 Verify，也就不会连带触发
+    # deploy-example 重新部署示例页。语义是「所有改动都命中才跳过」，夹带任何代码
+    # 文件都会照常跑门禁；PR 不受此影响，仍是必须过的检查。
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - '.husky/**'
+
+# 显式声明最小权限：默认 GITHUB_TOKEN 权限随仓库设置变化，不依赖它。
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  # 只取消同一 PR 里被新提交覆盖的旧运行；main 上的运行不取消，避免门禁结果被吞掉。
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
+    name: Verify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 不写死 pnpm 版本：action-setup 会读 package.json 的 packageManager，升级只改一处。
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 24
+        uses: actions/setup-node@v7
         with:
-          version: 12.3.4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run verify
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # 门禁就是这一个脚本（check + test + build + example:build + pack:check），
+      # 不在这里拆成多个 step，避免和 package.json 的 verify 定义漂移。
+      - name: Run verify
+        run: pnpm run verify

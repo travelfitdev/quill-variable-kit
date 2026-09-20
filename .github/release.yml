@@ -1,0 +1,51 @@
+# GitHub Release 自动说明（--generate-notes）的分类规则。
+#
+# 只影响 publish.yml 里 `gh release create --generate-notes` 那一行：这个文件是在「生成说明」
+# 的那一刻被读取的，不追溯历史 Release，也不影响 npm 那边发布的任何东西。
+#
+# 分类维度只有 PR 的 label（和作者），commit message 的 Conventional Commits 前缀不参与。
+# 而本仓库的日常改动是直推 main 的，没有 PR 也就没有 label，所以没开 PR 的改动会落到最后的
+# 兜底栏。想让某次改动单独分栏，需要把它以 PR 合入并打上对应 label——见 AGENTS.md。
+#
+# 下面的 label 与 commitlint 强约束的那套 type 一一对应（feat/fix/docs 复用 GitHub 自带
+# 的 enhancement/bug/documentation），打 label 时看提交前缀就知道打哪个。
+changelog:
+  exclude:
+    # 纯依赖升级对使用者没有信息量，别占版面。本仓库没有 dependabot，留着是备将来启用。
+    labels:
+      - dependencies
+  categories:
+    - title: ⚠️ 破坏性变更
+      labels:
+        - breaking
+    # 对应 feat
+    - title: 🚀 新功能
+      labels:
+        - enhancement
+    # 对应 fix
+    - title: 🐛 修复
+      labels:
+        - bug
+    # 对应 refactor / perf
+    - title: ♻️ 重构与性能
+      labels:
+        - refactor
+        - perf
+    # 对应 docs
+    - title: 📝 文档
+      labels:
+        - documentation
+    # 对应 build / ci / chore / test / style / revert
+    - title: 🔧 工程与杂项
+      labels:
+        - build
+        - ci
+        - chore
+        - test
+        - style
+        - revert
+    # 兜底必须留且必须放最后：没命中上面任何一条的改动（含所有无 label 的直推提交）
+    # 都归到这里，否则它们会散落在无分类的默认列表里。
+    - title: 🔧 其他改动
+      labels:
+        - '*'

@@ -93,10 +93,7 @@ describe('cross-editor paste', () => {
   });
 
   /** 造一份"从别的编辑器复制出来"的 HTML：变量节点带源 token 与源 label。 */
-  function sourceHtml(
-    variables: Array<{ token: string; label: string }>,
-    text: string,
-  ): string {
+  function sourceHtml(variables: Array<{ token: string; label: string }>, text: string): string {
     const editor = createEditor({ element: source, variables });
     editor.setText(text);
     const html = (source.querySelector('.ql-editor') as HTMLElement).innerHTML;

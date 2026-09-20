@@ -1,0 +1,82 @@
+name: Deploy Example
+
+on:
+  # 不监听 push：只有 Verify 在 main 上跑绿之后才部署，避免 main 上的坏提交
+  # 把示例页刷成半成品。手动重发用 workflow_dispatch。
+  # paths 过滤器只存在于 push / pull_request 触发器上，workflow_run 没有，所以过滤写在
+  # 上游 verify.yml：纯文档 / workflow 改动不产生 Verify 运行，示例页也就不会被重新部署。
+  # 注意：workflows 按上游 workflow 的 name 精确匹配（大小写敏感），改 Verify 的
+  # name 时必须同步改这里，否则部署会静默不再触发。
+  workflow_run:
+    workflows: [Verify]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  # 不取消进行中的部署：连推两次时排队而不是掐掉正在跑的 deploy-pages，
+  # 否则 Pages 可能停在半成品状态（GitHub 官方 Pages 模板同样用 false）。
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build example site
+    # 手动触发放行；workflow_run 时要求 verify 成功。
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # configure-pages 会调 Pages API 读站点配置，失败即让整个 job 失败，所以这里要给
+    # pages 权限；但 id-token（OIDC 换部署凭据）只有 deploy 用得上，留给 deploy。
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      # 部署被验证过的那次提交，而不是触发时可能已前移的默认分支 HEAD。
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      # 不写死 pnpm 版本：action-setup 会读 package.json 的 packageManager，升级只改一处。
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build example
+        run: pnpm run example:build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist-example
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
