@@ -1,0 +1,24 @@
+# push 前跑一遍 CI 门禁，避免坏提交落到 main 上再等 CI 报红。
+# stdin 是 git 传来的 "<local ref> <local sha> <remote ref> <remote sha>" 列表。
+if [ -t 0 ]; then
+  exec pnpm run verify
+fi
+
+only_tags=1
+seen=0
+while read -r local_ref _rest; do
+  seen=1
+  case "$local_ref" in
+    refs/tags/*) ;;
+    *) only_tags=0 ;;
+  esac
+done
+
+# 只推 tag 时跳过：发版流程里 preversion 已经验证过同一个提交，重跑纯属重复；
+# 手动打 tag 那条路本就只靠 CI 门禁（见 AGENTS.md 的发布流程）。
+if [ "$seen" = 1 ] && [ "$only_tags" = 1 ]; then
+  echo "pre-push: 只推 tag，跳过 verify"
+  exit 0
+fi
+
+pnpm run verify

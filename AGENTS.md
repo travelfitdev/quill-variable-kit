@@ -32,6 +32,7 @@ pnpm run release:patch # 发版：验证 -> 改小版本 -> commit + tag -> 暂�
 - `type` 在 `feat / fix / refactor / docs / style / test / chore / build / ci / perf / revert` 里选；`scope` 可选，小到能力模块（如 `variable`、`single-line`），`examples` / `docs` 等在模块内的小修可不带。
 - 破坏性变更在 `type` 后加 `!`，或写 `BREAKING CHANGE` footer。当前版本策略见「发布流程」的兼容性说明，0.1.0 阶段一般不涉及。
 - 格式由 commitlint 强约束：`git commit` 时经 husky 的 `commit-msg` 钩子跑 `pnpm exec commitlint --edit`，不合规直接拦下。**不要用 `--no-verify` 绕过**；`commitlint.config.js` 基于 `@commitlint/config-conventional`。
+- `git push` 时经 husky 的 `pre-push` 钩子跑 `pnpm run verify`，验证不过就推不上去（约 1 分钟）。只推 tag 时跳过：发版流程里 `preversion` 已经验证过同一个提交，而手动打 tag 那条路本就只靠 CI 门禁。
 - 发布流程的版本提交不走人工：`npm version` 按 `.npmrc` 的 `message=chore(release): v%s` 自动生成合规信息并打 tag（见下）；`commitlint.config.js` 里的 `ignores` 兜底放行裸版本号（万一有人覆盖了该配置，发布不会因此挂掉）。
 - 一个提交只做一件事；提交前跑 `pnpm run verify`。
 
