@@ -6,7 +6,7 @@
 
 `quill-variable-kit` 是一个基于 Quill 2 的轻量、框架无关的富文本编辑器封装，内置变量、单行模式和字数限制。对外只暴露一个 `createEditor(options)` 工厂和几个类型，内部按能力拆成 `core/` 下的模块，由 `EditorFacade` 直接组装与调用。
 
-- 包管理器：pnpm（`packageManager: pnpm@12.3.4`），Node >= 18（CI 用 20）
+- 包管理器：pnpm（`packageManager: pnpm@12.3.4`），Node >= 20（CI 用 24）
 - 模块类型：ESM（`"type": "module"`）
 - 运行依赖（peer，宿主应用自行安装；本地开发由 devDependencies 兜底）：`quill@^2.0.3`、`parchment@^3.0.0`
 - 构建产物：`dist/`（`vite build` 产出 ESM+CJS，`tsc -p tsconfig.build.json` 产出 `.d.ts`）
@@ -19,7 +19,7 @@ pnpm run check         # tsc --noEmit
 pnpm run test          # vitest run（单次）
 pnpm run test:watch    # vitest 监听
 pnpm run build         # vite build + 生成 .d.ts
-pnpm run example:build # 构建 Vue 示例到 dist-example/（相对路径，可直接托管 GitHub Pages；push main 时由 deploy-example.yml 自动部署）
+pnpm run example:build # 构建 Vue 示例到 dist-example/（相对路径，可直接托管 GitHub Pages；verify 在 main 上通过后由 deploy-example.yml 部署）
 pnpm run verify        # CI 门禁：check + test + build + example:build + pack:check
 pnpm run release:patch # 发版：验证 -> 改小版本 -> commit + tag -> 暂存（见「发布流程」）
 ```
@@ -41,17 +41,39 @@ pnpm run release:patch # 发版：验证 -> 改小版本 -> commit + tag -> 暂�
 
 1. `preversion` 先跑 `pnpm run verify`，验证不过即中断，不会发版。
 2. 改 `package.json` 版本号并自动生成 commit（`chore(release): vX.Y.Z`）+ 打 tag `vX.Y.Z`。
-3. `postversion` 推 main 与 tag，`.github/workflows/publish.yml` 在 `v*` tag 推送时触发：先 `pnpm run verify`，再 `npm stage publish` 把版本提交到 npm 暂存区。
+3. `postversion` 推 main 与 tag，`.github/workflows/publish.yml` 在 `v<数字>*` tag 推送时触发，按信任边界拆成三个 job：
 
-**发布走暂存（staged publishing），不直接上线**：npm 上新版本对外可见前，必须由维护者带 2FA 批准——在 npmjs.com 的 Staged Packages 里点 Approve，或本地 `npm stage approve <version>`。批准前可 `npm stage reject` 撤掉，所以自动部分（push tag / 暂存）都可撤销，真正不可逆的是带 2FA 的批准动作。
+   - **build**（`contents: read`，无任何凭证）：校验 tag 与 `package.json` 版本一致 → `pnpm run verify`（含 build，`dist/` 是 gitignore 的，产物只在这里产生）→ `pnpm pack` 出 tarball 并上传 artifact。
+   - **publish**（只有 `id-token: write`）：`npm stage publish ./quill-variable-kit.tgz`，用 npm trusted publishing（OIDC）换一次性 registry token，仓库里**不存** `NPM_TOKEN`。
+   - **release**（只有 `contents: write`）：`gh release create --draft --generate-notes` 建草稿 Release。
+
+   拆开的原因是：装依赖、跑项目脚本的 `build` 是最不可信的一环，绝不能和发布凭证同处一个 job；`publish` 因此不 install、不 checkout 源码，只对 tarball 操作。**发布对象是 tarball 而不是目录**这点也很关键——npm 只对目录发布触发 `prepublishOnly`，所以持有凭证的 job 不会执行任何项目脚本（再叠一层 `--ignore-scripts`）。`prepublishOnly` 仍要保留，它护的是本地手动 `npm publish` 那条路。
+
+触发面只有 tag：`publish.yml` 没有 `workflow_dispatch`，推分支 / 提 PR 都不触发。也就是说**手动** `git push origin vX.Y.Z`（或网页上打 tag）同样会发版，但那条路绕过本地的 `preversion` 预检，那时唯一的门禁就是 CI 里 `build` job 跑的那次 `verify`。tag 过滤写成 `v[0-9]*` 只挡掉 `v-next` 这类名字（`*` 仍能匹配字母，`v1-test` 会触发，再由版本一致性校验拦下）。
+
+**发布走暂存（staged publishing），不直接上线**：npm 上新版本对外可见前，必须由维护者带 2FA 批准——在 npmjs.com 的 Staged Packages 里点 Approve，或本地 `npm stage approve <version>`。批准前可 `npm stage reject` 撤掉，所以自动部分（push tag / 暂存）都可撤销，真正不可逆的是带 2FA 的批准动作。CI 建的 GitHub Release 同样是草稿，批准暂存版本时一并发布它，把「上线」收敛成一个人工动作。
+
+重试与撤销：
+
+- `build` job 失败（版本校验或 verify 没过）时**什么都没暂存**，修好后重跑 workflow 或删 tag 重推即可；tag 已经推上去了，不用重新发版。
+- 版本已经进了暂存区还想重来，必须先 `npm stage reject <version>`，否则同版本再次暂存会因版本已存在而报错。
+- 不批准也能检查暂存内容：`npm stage list` / `npm stage view <id>` / `npm stage download <id>`。
+- `release` job 失败只影响 GitHub Release，暂存结果不受影响；重跑 workflow 即可，草稿 Release 不存在时不会冲突（已存在会报错，先删草稿再重跑）。
 
 前置条件（脚本替代不了，需人工先配好）：
 
 - 工作区必须干净：改 bug / 加功能后**先 commit**，再跑 `release:*`，否则 `npm version` 直接报错。
 - Git 仓库必须有 `origin` 远程。
-- GitHub 仓库 Secrets 里配好 `NPM_TOKEN`：用 npm 的 **"Read and write (stage only)"** 权限 token（只让它暂存；直发的 bypass token 已被 npm 废弃，别再用）。
+- 在 npm 上配好 trusted publisher，CI 才能用 OIDC 换 token（**不再需要 `NPM_TOKEN` secret，可以删掉**）：
+  ```bash
+  npm trust github quill-variable-kit \
+    --repo travelfitdev/quill-variable-kit \
+    --file publish.yml \
+    --allow-stage-publish
+  ```
+  注意三点：`--allow-stage-publish` 与 `--allow-publish` 是**两个独立权限**，只配后者会允许直发而挡住 `npm stage publish`，这里要的是前者；`--file` 填的是 workflow **文件名**，重命名 `publish.yml` 会让授权失效；registry 目前一个包只允许一条 trust 配置，要换得先 `npm trust list` 拿到 id 再 `npm trust revoke --id <id>`。
 - npm 账号必须开 2FA：批准动作必须有它。
-- **首版例外**：包必须已存在于 npm 才允许暂存，所以 `0.1.0` 首个版本要手动 `npm publish`（本地带 2FA）直发一次，之后版本才走暂存流程。
+- **首版例外（已过去）**：包必须已存在于 npm 才允许暂存。`0.1.0` 从未发布，实际的首发是手动 `npm publish` 直发的 `0.1.1`（registry 上目前只有这一个版本）；包已存在，`0.1.2` 起都走暂存。
 - 版本号改动前确认；发布产物只有 `dist/`、`README.md`、`LICENSE`（`package.json` 的 `files`）。
 
 单测执行示例：`pnpm exec vitest run tests/editor.test.ts`。
