@@ -3,6 +3,8 @@ name: Deploy Example
 on:
   # 不监听 push：只有 Verify 在 main 上跑绿之后才部署，避免 main 上的坏提交
   # 把示例页刷成半成品。手动重发用 workflow_dispatch。
+  # paths 过滤器只存在于 push / pull_request 触发器上，workflow_run 没有，所以过滤写在
+  # 上游 verify.yml：纯文档 / workflow 改动不产生 Verify 运行，示例页也就不会被重新部署。
   # 注意：workflows 按上游 workflow 的 name 精确匹配（大小写敏感），改 Verify 的
   # name 时必须同步改这里，否则部署会静默不再触发。
   workflow_run:

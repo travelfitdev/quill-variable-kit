@@ -4,6 +4,12 @@ on:
   pull_request:
   push:
     branches: [main]
+    # 纯文档 / workflow 改动不影响构建产物，跳过整条 Verify，也就不会连带触发
+    # deploy-example 重新部署示例页。语义是「所有改动都命中才跳过」，夹带任何代码
+    # 文件都会照常跑门禁；PR 不受此影响，仍是必须过的检查。
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
 
 # 显式声明最小权限：默认 GITHUB_TOKEN 权限随仓库设置变化，不依赖它。
 permissions:
