@@ -72,18 +72,29 @@ label 与 commitlint 约束的 `type` 一一对应，看提交前缀就知道打
 pnpm run verify
 ```
 
-它等于 `check + test + build + example:build + pack:check`，也就是 CI（`.github/workflows/verify.yml`）跑的那一条。改动完成前请务必跑通。
+它等于 `format:check + lint + check + test + build + example:build + pack:check`，也就是 CI（`.github/workflows/verify.yml`）跑的那一条。改动完成前请务必跑通。
 
 `git push` 时 `pre-push` 钩子会自动再跑一次，所以即使忘了也会被拦下（本地热缓存下约几秒）。只推 tag 时会跳过。
 
 ## 代码风格
 
-项目**没有配置 ESLint / Prettier**，格式靠人工保持一致：
+**格式和 lint 都由工具强制，不用靠自觉：**
 
-- 2 空格缩进，单引号，语句结尾带分号
+```bash
+pnpm run format   # prettier --write .，自动改好格式
+pnpm run lint     # oxlint，报代码质量问题
+```
+
+- **Prettier** 管格式：2 空格缩进、单引号、带分号，`src/`、`tests/`、`examples/` 统一一套（示例不再用 Tab + 双引号）。配置在 `.prettierrc.json`，范围由 `.prettierignore` 决定——**Markdown 刻意排除在外**，因为 Prettier 对不齐中日韩字符的表格宽度。
+- **Oxlint** 管代码质量，开了类型感知。配置在 `.oxlintrc.json`，里面显式关掉的规则都附了原因，改动前先读注释。
+
+提交前跑一次 `pnpm run format` 就能修掉绝大部分格式问题。
+
+剩下这些工具管不了，仍然靠人：
+
 - **注释用中文**；测试用例名用英文（`it('converts only token matches ...')`）
 - 类型 / 接口 / 导出函数的 JSDoc 用中文，说明「为什么」而不只是「是什么」
-- `examples/` 下的 `.vue` 文件由外部工具格式化为 Tab + 双引号，**改示例时跟随该文件既有风格**
+- 一个提交只做一件事
 
 更细的代码组织约定（能力机制、必须遵守的不变量、测试约定、已知限制）见 [`AGENTS.md`](./AGENTS.md)。
 

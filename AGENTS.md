@@ -18,11 +18,14 @@
 ```bash
 pnpm install
 pnpm run check         # tsc --noEmit
+pnpm run lint          # oxlint（含类型感知，见「代码风格」）
+pnpm run format        # prettier --write .
+pnpm run format:check  # prettier --check .（只检查不改）
 pnpm run test          # vitest run（单次）
 pnpm run test:watch    # vitest 监听
 pnpm run build         # vite build + 生成 .d.ts
 pnpm run example:build # 构建 Vue 示例到 dist-example/（相对路径，可直接托管 GitHub Pages；verify 在 main 上通过后由 deploy-example.yml 部署）
-pnpm run verify        # CI 门禁：check + test + build + example:build + pack:check
+pnpm run verify        # CI 门禁：format:check + lint + check + test + build + example:build + pack:check
 pnpm run release:patch # 发版：验证 -> 改小版本 -> commit + tag -> 暂存（见「发布流程」）
 ```
 
@@ -149,10 +152,15 @@ tests/                   Vitest + jsdom
 
 ## 代码风格
 
-- 2 空格缩进，单引号，语句结尾带分号（示例目录的 `.vue` 文件当前由外部工具格式化为 Tab + 双引号，改示例时跟随该文件既有风格即可）。
+- 2 空格缩进，单引号，语句结尾带分号。**写代码时不用记这些**——`prettier` 按 `.prettierrc.json` 强制统一，`src/`、`tests/`、`examples/` 一视同仁（示例不再单独用 Tab + 双引号）。
 - 注释、README、提交信息用中文；测试用例名用英文（`it('converts only token matches ...')`）。
 - 类型/接口/导出函数的 JSDoc 用中文，说明"为什么"而不只是"是什么"。
-- 没有配置 ESLint / Prettier，格式靠人工保持一致；提交前务必跑 `pnpm run verify`。
+
+两个工具都已接入 `verify`（因此 PR 与 main 推送都会跑），提交前跑一次即可：
+
+- **Prettier** 管格式，范围由 `.prettierignore` 决定。**Markdown 刻意排除在外**：Prettier 按「字符数」对齐表格，而中日韩字符占 2 个显示宽度，会把中文表格补齐到等字符数、渲染出来列宽依然是乱的，比不对齐的紧凑写法更差。改文档时别加回 `*.md`。
+- **Oxlint** 管代码质量，配置在 `.oxlintrc.json`，开了**类型感知**（`options.typeAware`）。它按项目内的 `tsconfig.json` 分析类型，所以 `pnpm run check`（`tsc --noEmit`）仍然保留——`.vue` 的模板类型它同样不检查。
+- `.oxlintrc.json` 里显式关掉了 4 条规则，每条都附了「为什么在这个项目里不适用」的注释（如 `no-array-sort` 建议的 `toSorted()` 是 ES2023，而本项目 target/lib 是 ES2022）。**关规则前先读注释**，别当成可以顺手打开的优化项；反过来，往清单里加规则前也先跑一遍看它到底报几处、改动是让代码更好还是更差。
 
 ## 测试约定
 
