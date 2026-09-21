@@ -10,7 +10,7 @@
   flex-direction: column;
   border: 1px solid #d9d9d9;
   border-radius: 2px;
-  font-size: inherit;
+  font-size: 14px;
 }
 
 .ql-editor {
@@ -18,7 +18,7 @@
   min-height: 0;
   height: auto;
   padding: var(--editor-padding-block) var(--editor-padding-inline);
-  line-height: inherit;
+  line-height: 22px;
 }
 
 .ql-editor.ql-blank::before {
