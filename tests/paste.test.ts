@@ -35,11 +35,16 @@ function pasteHtml(element: HTMLElement, html: string): void {
   root.dispatchEvent(event);
 }
 
-/** 取容器里所有变量节点的 `token/label`，用来断言最终落在文档里的形状。 */
+/**
+ * 取容器里所有变量节点的 `token/label`，用来断言最终落在文档里的形状。
+ * label 读内层 contenteditable=false 的展示节点——外层 span 两端有 iOS 光标修复用的 \uFEFF
+ * 占位符，`textContent` 会带上它们，读展示节点才能断言"用户实际看到的文案"。
+ */
 function embedTokens(element: HTMLElement): string[] {
-  return [...element.querySelectorAll('.ql-variable')].map(
-    (node) => `${(node as HTMLElement).dataset.token}/${node.textContent}`,
-  );
+  return [...element.querySelectorAll('.ql-variable')].map((node) => {
+    const label = node.querySelector('[contenteditable="false"]')?.textContent ?? '';
+    return `${(node as HTMLElement).dataset.token}/${label}`;
+  });
 }
 
 describe('paste pipeline', () => {
@@ -64,7 +69,7 @@ describe('paste pipeline', () => {
     });
     paste(element, 'hi 客户姓名');
     expect(editor.getText()).toBe('hi {{name}}');
-    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+    expect(element.querySelector('[contenteditable="false"]')?.textContent).toBe('客户姓名');
     editor.destroy();
   });
 
@@ -76,7 +81,7 @@ describe('paste pipeline', () => {
     });
     paste(element, '客户\n姓名');
     expect(editor.getText()).toBe('{{name}}');
-    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+    expect(element.querySelector('[contenteditable="false"]')?.textContent).toBe('客户姓名');
     editor.destroy();
   });
 });

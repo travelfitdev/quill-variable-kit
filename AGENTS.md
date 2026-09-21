@@ -124,6 +124,8 @@ tests/                   Vitest + jsdom
 
 **变量数据形状。** `VariableBlot`（`src/core/variable/blot.ts`）把 `{ token, label }` 写入 `dataset.token` / `dataset.label`，并通过 `VariableBlot.value(node)` 从这两个属性读回。`label` 缺省等于 `token` 这条规则集中在同文件的 `normalizeVariable`，`create` / `value` 与 token 匹配都走它，所以两侧不会各写一份默认值。历史 Delta 里保存的也是这个对象形状，改字段名属于破坏性变更。
 
+**变量节点的 DOM 结构（iOS 光标修复的载体）。** 加载到文档里的 `.ql-variable` 是 `\uFEFF`（ZWNBSP）占位符 + 内层 `contenteditable=false` 展示节点 + `\uFEFF` 的结构（构造时把 `create()` 写进的 label 文本挪进内层节点）。外层 span **不得**设 `contenteditable=false`：这是 iOS Safari「一行最后一个元素是不可编辑岛时光标画到行尾」的修复——两端占位符给光标落脚点，与 quill `formats/formula` 同一套路。这套结构有两处连带约束：`value()` 只读 dataset，所以占位符不会漏进 Delta / `getText()` / 字数；任何读 `.ql-variable` 外层 `textContent` 的地方（含测试）会拿到占位符，应读内层 `[contenteditable="false"]` 节点或 `dataset.label`。`index` / `restore` / `update` 的实现从 quill `blots/embed.js` 移植，不要自创结构。
+
 **识别规则（token vs label）。**
 
 | 路径 | 识别 / 输出 |

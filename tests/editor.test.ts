@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditor } from '../src';
 import { getContentLength, textToVariableDelta } from '../src/core/variable/tokens';
 
+/** 变量展示文本：读内层 contenteditable=false 的展示节点，跳过两端 \uFEFF 占位符（iOS 光标修复）。 */
+function displayedLabel(blot: Element | null | undefined): string {
+  return blot?.querySelector('[contenteditable="false"]')?.textContent ?? '';
+}
+
 describe('variable helpers', () => {
   it('converts only token matches, leaving labels as plain text', () => {
     const delta = textToVariableDelta('A {{name}} 客户姓名', [
@@ -51,7 +56,7 @@ describe('createEditor', () => {
 
     expect(editor.getText()).toBe('Hi {{name}}');
     const blot = element.querySelector<HTMLElement>('.ql-variable');
-    expect(blot?.textContent).toBe('客户姓名');
+    expect(displayedLabel(blot)).toBe('客户姓名');
     expect(blot?.dataset.token).toBe('{{name}}');
     expect(blot?.dataset.label).toBe('客户姓名');
     expect(element.querySelector('.rich-editor-count')?.textContent).toBe('3/10');
@@ -59,6 +64,26 @@ describe('createEditor', () => {
 
     editor.destroy();
     expect(element.querySelector('.rich-editor-count')).toBeNull();
+  });
+
+  it('wraps the variable label in a non-editable island between zero-width guards', () => {
+    const editor = createEditor({
+      element,
+      variables: [{ token: '{{name}}', label: '客户姓名' }],
+    });
+    editor.setText('Hi {{name}}');
+
+    // iOS Safari 的光标修复：行尾是不可编辑岛时，两端需要 \uFEFF 占位符给光标落脚点。
+    const blot = element.querySelector<HTMLElement>('.ql-variable');
+    expect(blot?.childNodes).toHaveLength(3);
+    expect(blot?.firstChild?.nodeValue).toBe('\uFEFF');
+    expect(blot?.lastChild?.nodeValue).toBe('\uFEFF');
+    // contenteditable=false 只设在内层展示节点，外层 span 保持可编辑（占位符才有的放矢）。
+    expect(blot?.getAttribute('contenteditable')).toBeNull();
+    expect(blot?.querySelector('[contenteditable="false"]')?.textContent).toBe('客户姓名');
+    // 占位符在 blot 内部，value() 只读 dataset，所以它们不会漏进 Delta 与 getText()。
+    expect(editor.getText()).toBe('Hi {{name}}');
+    editor.destroy();
   });
 
   it('does not convert labels into variables in setText', () => {
@@ -97,7 +122,7 @@ describe('createEditor', () => {
 
     editor.insertVariable('{{name}}');
     expect(editor.getText()).toBe('{{name}}');
-    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+    expect(displayedLabel(element.querySelector('.ql-variable'))).toBe('客户姓名');
 
     // 展示文本只能来自配置：多余的实参不会生效，也不会污染落库的 label。
     (editor.insertVariable as (token: string, extra?: string) => void)(
@@ -106,7 +131,7 @@ describe('createEditor', () => {
     );
     const embeds = element.querySelectorAll('.ql-variable');
     expect(embeds).toHaveLength(2);
-    expect(embeds[1]?.textContent).toBe('客户姓名');
+    expect(displayedLabel(embeds[1])).toBe('客户姓名');
     expect(embeds[1]?.getAttribute('data-label')).toBe('客户姓名');
     editor.destroy();
   });
@@ -221,7 +246,7 @@ describe('createEditor', () => {
 
     // 只读只拦用户输入，API 写入照常落地（初始文本仍应渲染出变量）。
     editor.setText('您好，{{name}}');
-    expect(element.querySelector('.ql-variable')?.textContent).toBe('客户姓名');
+    expect(displayedLabel(element.querySelector('.ql-variable'))).toBe('客户姓名');
 
     editor.enable();
     expect(element.classList.contains('ql-disabled')).toBe(false);
