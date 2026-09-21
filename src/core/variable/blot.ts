@@ -1,6 +1,10 @@
-import Quill from 'quill';
-import { EmbedBlot } from 'parchment';
+import Quill, { Parchment } from 'quill';
 import type { Variable } from '../../types';
+
+// Parchment 由 quill 重新导出，且运行时是同一个对象（`Parchment.EmbedBlot === (await import('parchment')).EmbedBlot`），
+// 所以这里不直接依赖 parchment 包：少一个 peer，也避免宿主装到与 quill 内部不同的 parchment 版本。
+// 注意必须用命名导入 `{ Parchment }`——默认导出上并没有 Parchment 属性。
+const { EmbedBlot } = Parchment;
 
 export const VARIABLE_BLOT_NAME = 'variable';
 

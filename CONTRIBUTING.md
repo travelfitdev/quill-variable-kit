@@ -10,7 +10,7 @@ pnpm install
 
 Node >= 20（CI 用 24），包管理器用 pnpm（版本由 `package.json` 的 `packageManager` 锁定，corepack 会自动处理）。
 
-`quill` 与 `parchment` 是 peer 依赖，宿主应用需自行安装；本地开发由 devDependencies 兜底，所以 `pnpm install` 之后就能直接跑示例。
+`quill` 是 peer 依赖，宿主应用需自行安装；本地开发由 devDependencies 兜底，所以 `pnpm install` 之后就能直接跑示例。
 
 ## 提交流程
 

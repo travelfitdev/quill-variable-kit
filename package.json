@@ -63,7 +63,6 @@
     "verify": "pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test && pnpm run build && pnpm run example:build && pnpm run pack:check"
   },
   "peerDependencies": {
-    "parchment": "^3.0.0",
     "quill": "^2.0.3"
   },
   "devDependencies": {
@@ -76,7 +75,6 @@
     "jsdom": "^25.0.1",
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
-    "parchment": "^3.0.0",
     "prettier": "^3.9.8",
     "quill": "^2.0.3",
     "typescript": "^5.7.2",

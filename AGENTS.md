@@ -10,7 +10,8 @@
 
 - 包管理器：pnpm（`packageManager: pnpm@12.3.4`），Node >= 20（CI 用 24）
 - 模块类型：ESM（`"type": "module"`）
-- 运行依赖（peer，宿主应用自行安装；本地开发由 devDependencies 兜底）：`quill@^2.0.3`、`parchment@^3.0.0`
+- 运行依赖（peer，宿主应用自行安装；本地开发由 devDependencies 兜底）：`quill@^2.0.3`
+- Parchment 不单独声明依赖：`quill` 已重新导出它，且运行时是同一个对象。用**命名导入** `import { Parchment } from 'quill'`——默认导出上没有 `Parchment` 属性，`Quill.Parchment` 在运行时是 `undefined`。取 `EmbedBlot` 从 `Parchment.EmbedBlot` 拿。
 - 构建产物：`dist/`（`vite build` 产出 ESM+CJS，`tsc -p tsconfig.build.json` 产出 `.d.ts`）
 
 ## 常用命令

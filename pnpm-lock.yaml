@@ -136,9 +136,6 @@ importers:
       oxlint-tsgolint:
         specifier: ^7.0.2002
         version: 7.0.2002
-      parchment:
-        specifier: ^3.0.0
-        version: 3.0.0
       prettier:
         specifier: ^3.9.8
         version: 3.9.8

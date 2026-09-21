@@ -16,10 +16,10 @@
 ## 安装
 
 ```bash
-pnpm add quill-variable-kit quill parchment
+pnpm add quill-variable-kit quill
 ```
 
-`quill` 与 `parchment` 是 peer 依赖，需宿主应用自行安装且版本兼容；包同时提供 ESM 与 CJS 产物。
+`quill` 是 peer 依赖，需宿主应用自行安装且版本兼容；包同时提供 ESM 与 CJS 产物。
 
 ## 使用
 
