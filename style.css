@@ -1,0 +1,6 @@
+/* webpack 4 兼容转发：webpack 4 不识别 package.json 的 `exports` 字段，
+   `import 'quill-variable-kit/style.css'` 会按字面路径找包根的这个文件。
+   css-loader 会相对本文件解析 `@import`，最终命中 dist 里的真实样式。
+   webpack 5+ 走 exports 映射到 ./dist/style.css，不经过这里。
+   `files` 已把本文件纳入发布，刷新 dist（`pnpm run build`）后无需重复生成它。 */
+@import './dist/style.css';

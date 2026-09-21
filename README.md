@@ -50,6 +50,31 @@ editor.destroy();
 
 样式：`style.css` 需**显式引入**——构建产物把 Quill 基础样式与应用样式合并为单个文件，打包后的 JS 不会自动注入 CSS。`element` 必须是已插入文档的容器元素。
 
+## webpack 4 兼容
+
+构建产物把 `target` 降到 ES2018，`dist/index.mjs` / `dist/index.cjs` 不含 webpack 4 解析器不认的语法（如可选链、空值合并），webpack 4 可以直接解析本包，**无需**把它加进 `babel-loader` 的 `include`。
+
+Webpack 4 不识别 `package.json` 的 `exports` 字段，但包根提供了一根转发文件，`import 'quill-variable-kit/style.css'` 仍可命中（它 `@import` 到 `dist/style.css`，由 `css-loader` 解析）；直接写 `quill-variable-kit/dist/style.css` 也可以。
+
+注意 **quill 2 本身**只发 ESM 且带 `class fields`，webpack 4 解析不了，消费方必须在 `babel-loader` 里转译它：
+
+```js
+// webpack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(js|mjs)$/,
+        include: /node_modules[\\/]quill/,
+        use: { loader: 'babel-loader', options: { presets: ['@babel/preset-env'] } },
+      },
+    ],
+  },
+};
+```
+
+`include` 只写 `quill` 就够，不必带 `quill-variable-kit`；本项目 CI 里有 `test:webpack4` 冒烟，锁住这条保证。
+
 ## API
 
 ### `createEditor(options)`

@@ -3,6 +3,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
+    // target 降到 ES2018：产物里去掉 `?.`/`??`（ES2020），webpack 4 的解析器（acorn 6）
+    // 才能直接解析，消费方无需把 quill-variable-kit 也加进 babel-loader 的 include。
+    // quill 2 本身仍是 ESM + class fields，webpack 4 下必须转译，那是消费方绕不开的。
+    target: 'es2018',
     lib: {
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       formats: ['es', 'cjs'],

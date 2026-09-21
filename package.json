@@ -26,6 +26,7 @@
   ],
   "files": [
     "dist",
+    "style.css",
     "README.md",
     "LICENSE"
   ],
@@ -50,6 +51,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:webpack4": "vitest run tests/webpack4-smoke.test.ts",
     "example:dev": "vite --config examples/vite.config.ts --host 0.0.0.0",
     "example:build": "vite build --config examples/vite.config.ts",
     "pack:check": "pnpm pack --dry-run",
@@ -60,7 +62,7 @@
     "release:patch": "npm version patch",
     "release:minor": "npm version minor",
     "release:major": "npm version major",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test && pnpm run build && pnpm run example:build && pnpm run pack:check"
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test && pnpm run build && pnpm run test:webpack4 && pnpm run example:build && pnpm run pack:check"
   },
   "peerDependencies": {
     "quill": "^2.0.3"
@@ -70,6 +72,7 @@
     "@commitlint/config-conventional": "^21.2.2",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.10.5",
+    "@types/webpack": "^4.41.40",
     "@vitejs/plugin-vue": "^5.2.1",
     "husky": "^9.1.7",
     "jsdom": "^25.0.1",
@@ -80,7 +83,8 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8",
-    "vue": "^3.5.13"
+    "vue": "^3.5.13",
+    "webpack": "^4.47.0"
   },
   "engines": {
     "node": ">=20"
